@@ -2,10 +2,11 @@ import os
 
 from flask import Flask, render_template, request, redirect
 
-from inference import get_prediction
-from commons import format_class_name
+from inference import get_detection, get_recognition
 
 app = Flask(__name__)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -16,11 +17,13 @@ def upload_file():
         file = request.files.get('file')
         if not file:
             return
+        path = basedir + "/static/data/"
+        file_path = path + file.filename
+        file.save(file_path)
         img_bytes = file.read()
-        class_id, class_name = get_prediction(image_bytes=img_bytes)
-        class_name = format_class_name(class_name)
-        return render_template('result.html', class_id=class_id,
-                               class_name=class_name)
+        roi = get_detection(file_path, file.filename)
+        water_reading = get_recognition(roi)
+        return render_template('result.html', filename=file.filename, water_reading=water_reading)
     return render_template('index.html')
 
 
